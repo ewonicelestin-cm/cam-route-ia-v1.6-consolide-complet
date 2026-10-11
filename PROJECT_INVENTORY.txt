@@ -1,0 +1,17 @@
+CAM-ROUTE IA V1.6 — PROJET CONSOLIDÉ
+
+lib/app       : navigation et application
+lib/models    : données de domaine et rapports
+lib/services  : GPS, SQLite, routage, monde, IA, sismologie/météo, corridor, réseau
+lib/screens   : dashboard, carte, GPS, monde, réseau, routes, historique, infrastructures, terrain, analyse, IA, paramètres
+lib/widgets   : composants réutilisables
+lib/theme     : thème Material
+android       : intégration Android et lecture native réseau
+assets        : ressources
+
+docs:
+README.md
+ANDROID_PERMISSIONS.md
+NETWORK_DATA_SOURCES.md
+IMPLEMENTATIONS_COMPLETE.md
+PROJECT_INVENTORY.txt
