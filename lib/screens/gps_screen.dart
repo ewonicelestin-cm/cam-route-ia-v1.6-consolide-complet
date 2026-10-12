@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/app_data.dart';
@@ -109,9 +109,12 @@ class _GpsScreenState extends State<GpsScreen> {
                     children: [
                       Text('Latitude : ${_currentPosition!.latitude}'),
                       Text('Longitude : ${_currentPosition!.longitude}'),
-                      Text('Altitude : ${_currentPosition!.altitude.toStringAsFixed(1)} m'),
-                      Text('Précision : ${_currentPosition!.accuracy.toStringAsFixed(1)} m'),
-                      Text('Vitesse : ${_currentPosition!.speed.toStringAsFixed(1)} m/s'),
+                      Text(
+                          'Altitude : ${_currentPosition!.altitude.toStringAsFixed(1)} m'),
+                      Text(
+                          'Précision : ${_currentPosition!.accuracy.toStringAsFixed(1)} m'),
+                      Text(
+                          'Vitesse : ${_currentPosition!.speed.toStringAsFixed(1)} m/s'),
                     ],
                   ),
           ),

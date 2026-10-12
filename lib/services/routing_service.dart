@@ -4,34 +4,46 @@ import 'package:latlong2/latlong.dart';
 import '../models/route_result.dart';
 
 class RoutingService {
-  static const baseUrl = 'https://router.project-osrm.org/route/v1/driving';
+  // Canaux de routage primaires et secondaires (paliatifs)
+  static const primaryBaseUrl = 'https://router.project-osrm.org/route/v1/driving';
+  static const fallbackBaseUrl = 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
 
   final http.Client _client;
 
   RoutingService({http.Client? client}) : _client = client ?? http.Client();
 
   Future<RouteResult?> calculateRoute({required LatLng start, required LatLng destination}) async {
+    // Tentative 1 : Canal primaire (OSRM public principal)
+    RouteResult? result = await _tryFetchRoute(primaryBaseUrl, start, destination);
+    if (result != null && !result.isEstimated) return result;
+
+    // Tentative 2 : Canal palliattif secondaire (OSRM OpenStreetMap.de)
+    result = await _tryFetchRoute(fallbackBaseUrl, start, destination);
+    if (result != null && !result.isEstimated) return result;
+
+    // Tentative 3 : Repli géométrique hors-ligne (estimation locale)
+    return _estimateRoute(start: start, destination: destination);
+  }
+
+  Future<RouteResult?> _tryFetchRoute(String baseUrl, LatLng start, LatLng destination) async {
     try {
       final coordinates = '${start.longitude},${start.latitude};${destination.longitude},${destination.latitude}';
       final response = await _client.get(
         Uri.parse('$baseUrl/$coordinates?overview=full&geometries=geojson&steps=false'),
-      );
-      if (response.statusCode != 200) return _estimateRoute(start: start, destination: destination);
+      ).timeout(const Duration(seconds: 6));
+
+      if (response.statusCode != 200) return null;
 
       final decoded = jsonDecode(response.body);
-      if (decoded is! Map<String, dynamic> || decoded['code'] != 'Ok') {
-        return _estimateRoute(start: start, destination: destination);
-      }
+      if (decoded is! Map<String, dynamic> || decoded['code'] != 'Ok') return null;
 
       final routes = decoded['routes'] as List?;
-      if (routes == null || routes.isEmpty) return _estimateRoute(start: start, destination: destination);
+      if (routes == null || routes.isEmpty) return null;
 
       final route = routes.first as Map<String, dynamic>;
       final geometry = route['geometry'] as Map<String, dynamic>?;
       final coordinatesList = geometry?['coordinates'] as List?;
-      if (coordinatesList == null || coordinatesList.isEmpty) {
-        return _estimateRoute(start: start, destination: destination);
-      }
+      if (coordinatesList == null || coordinatesList.isEmpty) return null;
 
       final points = coordinatesList.map<LatLng>((value) {
         final point = value as List;
@@ -47,7 +59,7 @@ class RoutingService {
         durationSeconds: durationSeconds,
       );
     } catch (_) {
-      return _estimateRoute(start: start, destination: destination);
+      return null;
     }
   }
 
@@ -70,7 +82,7 @@ class RoutingService {
       points: points,
       distanceMeters: directDistance,
       durationSeconds: durationSeconds,
-      note: 'Aucune route OSRM disponible ou connexion indisponible. Le tracé est une estimation géométrique locale, non un itinéraire routier réel.',
+      note: 'Canaux OSRM primaires et palliattifs indisponibles (connexion absente ou service injoignable). Tracé calculé via estimation géométrique locale.',
     );
   }
 }

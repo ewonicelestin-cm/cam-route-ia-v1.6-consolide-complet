@@ -39,7 +39,8 @@ class LiveNetworkService {
     Map<dynamic, dynamic>? raw;
     if (!kIsWeb) {
       try {
-        raw = await _channel.invokeMethod<Map<dynamic, dynamic>>('getNetworkSnapshot');
+        raw = await _channel
+            .invokeMethod<Map<dynamic, dynamic>>('getNetworkSnapshot');
       } catch (_) {}
     }
 
@@ -60,8 +61,12 @@ class LiveNetworkService {
     }
 
     return LiveNetworkSnapshot(
-      operatorName: (raw['operator'] as String?)?.trim().isNotEmpty == true ? raw['operator'] as String : 'Opérateur non identifié',
-      technology: (raw['technology'] as String?)?.trim().isNotEmpty == true ? raw['technology'] as String : 'Technologie non identifiée',
+      operatorName: (raw['operator'] as String?)?.trim().isNotEmpty == true
+          ? raw['operator'] as String
+          : 'Opérateur non identifié',
+      technology: (raw['technology'] as String?)?.trim().isNotEmpty == true
+          ? raw['technology'] as String
+          : 'Technologie non identifiée',
       signalDbm: (raw['signalDbm'] as num?)?.toDouble(),
       qualityDb: (raw['qualityDb'] as num?)?.toDouble(),
       latencyMs: latency,
@@ -73,9 +78,12 @@ class LiveNetworkService {
   Future<int?> _measureLatency() async {
     final stopwatch = Stopwatch()..start();
     try {
-      final response = await http.head(Uri.parse('https://www.cloudflare.com/cdn-cgi/trace')).timeout(const Duration(seconds: 8));
+      final response = await http
+          .head(Uri.parse('https://www.cloudflare.com/cdn-cgi/trace'))
+          .timeout(const Duration(seconds: 8));
       stopwatch.stop();
-      if (response.statusCode >= 200 && response.statusCode < 500) return stopwatch.elapsedMilliseconds;
+      if (response.statusCode >= 200 && response.statusCode < 500)
+        return stopwatch.elapsedMilliseconds;
     } catch (_) {}
     return null;
   }

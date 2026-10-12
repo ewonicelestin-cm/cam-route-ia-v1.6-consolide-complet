@@ -1,0 +1,16 @@
+android/
+ios/
+linux/
+macos/
+windows/
+test/
+.dart_tool/
+.git/
+.idea/
+.vscode/
+build/
+coverage/
+*.apk
+*.aab
+*.iml
+.env*

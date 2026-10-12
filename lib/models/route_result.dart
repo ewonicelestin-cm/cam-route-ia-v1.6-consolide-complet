@@ -25,12 +25,14 @@ class RouteResult {
     required double distanceMeters,
     required double durationSeconds,
     String? note,
-  }) => RouteResult(
+  }) =>
+      RouteResult(
         points: points,
         distanceMeters: distanceMeters,
         durationSeconds: durationSeconds,
         source: 'Estimation hors ligne',
         isEstimated: true,
-        note: note ?? 'Le tracé est une approximation géométrique locale sans calcul routier réel.',
+        note: note ??
+            'Le tracé est une approximation géométrique locale sans calcul routier réel.',
       );
 }

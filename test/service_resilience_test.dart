@@ -52,7 +52,9 @@ void main() {
     expect(ZoneIntelligenceService(), isA<ZoneIntelligenceService>());
   });
 
-  test('l’analyse de zone reste robuste si les API externes répondent avec des payloads incomplets', () async {
+  test(
+      'l’analyse de zone reste robuste si les API externes répondent avec des payloads incomplets',
+      () async {
     final service = ZoneIntelligenceService(
       client: _FakeClient(),
       now: () => DateTime.utc(2026, 1, 1),
@@ -64,12 +66,15 @@ void main() {
     expect(result.weather, isNull);
     expect(result.seismicEvents, isEmpty);
     expect(
-      result.warnings.any((w) => w.contains('Les événements sismiques et la météo sont des données externes')),
+      result.warnings.any((w) => w.contains(
+          'Les événements sismiques et la météo sont des données externes')),
       isTrue,
     );
   });
 
-  test('le service de routage produit une estimation hors ligne si OSRM ne répond pas', () async {
+  test(
+      'le service de routage produit une estimation hors ligne si OSRM ne répond pas',
+      () async {
     final service = RoutingService(client: _FailingClient());
 
     final result = await service.calculateRoute(

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/global_place.dart';
 import '../services/global_place_catalog.dart';
 
@@ -55,7 +55,9 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
   @override
   Widget build(BuildContext context) {
     final continents = GlobalPlaceCatalog.continents;
-    final countries = _continent == null ? <String>[] : GlobalPlaceCatalog.countries(_continent!);
+    final countries = _continent == null
+        ? <String>[]
+        : GlobalPlaceCatalog.countries(_continent!);
     final types = GlobalPlaceCatalog.types;
 
     return Column(
@@ -71,8 +73,10 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                 children: [
                   TextField(
                     decoration: InputDecoration(
-                      labelText: 'Rechercher ville, village, campagne, enclave ou coordonnées GPS',
-                      hintText: 'Ex: "Kousséri", "Yokadouma", "Mundemba" ou "3.848, 11.502"',
+                      labelText:
+                          'Rechercher ville, village, campagne, enclave ou coordonnées GPS',
+                      hintText:
+                          'Ex: "Kousséri", "Yokadouma", "Mundemba" ou "3.848, 11.502"',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -88,7 +92,11 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                           if (_searching)
                             const Padding(
                               padding: EdgeInsets.all(10.0),
-                              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                              child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2)),
                             ),
                         ],
                       ),
@@ -107,7 +115,10 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                       children: [
                         FilterChip(
                           label: const Text('Toutes'),
-                          selected: _continent == null && _country == null && !_remoteOnly && _type == null,
+                          selected: _continent == null &&
+                              _country == null &&
+                              !_remoteOnly &&
+                              _type == null,
                           onSelected: (_) {
                             setState(() {
                               _continent = null;
@@ -120,7 +131,8 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                         ),
                         const SizedBox(width: 6),
                         FilterChip(
-                          avatar: const Text('🇨🇲', style: TextStyle(fontSize: 12)),
+                          avatar: const Text('🇨🇲',
+                              style: TextStyle(fontSize: 12)),
                           label: const Text('Cameroun complet'),
                           selected: _country == 'Cameroun',
                           onSelected: (selected) {
@@ -135,7 +147,8 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                         FilterChip(
                           avatar: const Icon(Icons.agriculture, size: 16),
                           label: const Text('Campagnes & Villages'),
-                          selected: _type == 'Village / Campagne' || _type == 'Commune rurale',
+                          selected: _type == 'Village / Campagne' ||
+                              _type == 'Commune rurale',
                           onSelected: (selected) {
                             setState(() {
                               _type = selected ? 'Village / Campagne' : null;
@@ -167,10 +180,14 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Continent',
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
                           ),
                           items: continents
-                              .map((x) => DropdownMenuItem(value: x, child: Text(x, overflow: TextOverflow.ellipsis)))
+                              .map((x) => DropdownMenuItem(
+                                  value: x,
+                                  child:
+                                      Text(x, overflow: TextOverflow.ellipsis)))
                               .toList(),
                           onChanged: (v) {
                             setState(() {
@@ -190,15 +207,21 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Pays',
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
                           ),
                           items: countries
-                              .map((x) => DropdownMenuItem(value: x, child: Text(x, overflow: TextOverflow.ellipsis)))
+                              .map((x) => DropdownMenuItem(
+                                  value: x,
+                                  child:
+                                      Text(x, overflow: TextOverflow.ellipsis)))
                               .toList(),
-                          onChanged: _continent == null ? null : (v) {
-                            setState(() => _country = v);
-                            _updateResults();
-                          },
+                          onChanged: _continent == null
+                              ? null
+                              : (v) {
+                                  setState(() => _country = v);
+                                  _updateResults();
+                                },
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -210,10 +233,14 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Type',
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
                           ),
                           items: types
-                              .map((x) => DropdownMenuItem(value: x, child: Text(x, overflow: TextOverflow.ellipsis)))
+                              .map((x) => DropdownMenuItem(
+                                  value: x,
+                                  child:
+                                      Text(x, overflow: TextOverflow.ellipsis)))
                               .toList(),
                           onChanged: (v) {
                             setState(() => _type = v);
@@ -231,7 +258,8 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                       Expanded(
                         child: Text(
                           '${_searchResults.length} localités accessibles (villes, campagnes, zones isolées)',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ),
                       TextButton(
@@ -260,11 +288,13 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.location_off, size: 48, color: Colors.grey),
+                      const Icon(Icons.location_off,
+                          size: 48, color: Colors.grey),
                       const SizedBox(height: 12),
                       const Text(
                         'Aucune localité trouvée pour cette recherche.',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 6),
                       const Text(
@@ -276,7 +306,8 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                 )
               : ListView.builder(
                   itemCount: _searchResults.length,
-                  itemBuilder: (context, index) => _placeCard(context, _searchResults[index]),
+                  itemBuilder: (context, index) =>
+                      _placeCard(context, _searchResults[index]),
                 ),
         ),
       ],
@@ -291,12 +322,16 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isRemote ? Colors.orange.shade100 : Theme.of(context).colorScheme.primaryContainer,
+          backgroundColor: isRemote
+              ? Colors.orange.shade100
+              : Theme.of(context).colorScheme.primaryContainer,
           child: Text(
             place.countryCode.isNotEmpty ? place.countryCode : 'INT',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: isRemote ? Colors.orange.shade900 : Theme.of(context).colorScheme.onPrimaryContainer,
+              color: isRemote
+                  ? Colors.orange.shade900
+                  : Theme.of(context).colorScheme.onPrimaryContainer,
             ),
           ),
         ),
@@ -319,7 +354,8 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                 if (isRemote) ...[
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.orange.shade50,
                       borderRadius: BorderRadius.circular(4),
@@ -328,9 +364,12 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.warning_amber_rounded, size: 12, color: Colors.orange),
+                        Icon(Icons.warning_amber_rounded,
+                            size: 12, color: Colors.orange),
                         SizedBox(width: 2),
-                        Text('Zone reculée / Accès difficile', style: TextStyle(fontSize: 10, color: Colors.orange)),
+                        Text('Zone reculée / Accès difficile',
+                            style:
+                                TextStyle(fontSize: 10, color: Colors.orange)),
                       ],
                     ),
                   ),
@@ -352,7 +391,8 @@ class _GlobalPlacesScreenState extends State<GlobalPlacesScreen> {
           GlobalPlaceCatalog.selected.set(place);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${place.name} (${place.country}) sélectionné pour la cartographie & routage.'),
+              content: Text(
+                  '${place.name} (${place.country}) sélectionné pour la cartographie & routage.'),
               backgroundColor: Colors.green.shade800,
             ),
           );

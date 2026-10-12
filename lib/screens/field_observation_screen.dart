@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/app_data.dart';
 import '../services/database_service.dart';
 import '../services/location_service.dart';
@@ -44,8 +44,10 @@ class _FieldObservationScreenState extends State<FieldObservationScreen> {
         ),
       );
     } else if (_category == 'Réseau') {
-      final sig = double.tryParse(_signalController.text.trim().replaceAll(',', '.'));
-      final qual = double.tryParse(_qualityController.text.trim().replaceAll(',', '.'));
+      final sig =
+          double.tryParse(_signalController.text.trim().replaceAll(',', '.'));
+      final qual =
+          double.tryParse(_qualityController.text.trim().replaceAll(',', '.'));
       await _db.insertNetworkMeasurement(
         NetworkMeasurement(
           latitude: p.latitude,
@@ -76,7 +78,8 @@ class _FieldObservationScreenState extends State<FieldObservationScreen> {
     if (mounted) _msg('Observation enregistrée.');
   }
 
-  void _msg(String s) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
+  void _msg(String s) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -95,26 +98,49 @@ class _FieldObservationScreenState extends State<FieldObservationScreen> {
           ),
           const SizedBox(height: 10),
           if (_category == 'Route') ...[
-            _drop('Type de route', _roadType, ['Bitumée', 'Latérite', 'Piste', 'Autre'], (v) => _roadType = v),
-            _drop('État', _condition, ['Bon', 'Moyen', 'Mauvais'], (v) => _condition = v),
+            _drop(
+                'Type de route',
+                _roadType,
+                ['Bitumée', 'Latérite', 'Piste', 'Autre'],
+                (v) => _roadType = v),
+            _drop('État', _condition, ['Bon', 'Moyen', 'Mauvais'],
+                (v) => _condition = v),
           ],
           if (_category == 'Réseau') ...[
-            _drop('Opérateur', _operatorName, ['Non renseigné', 'MTN', 'Orange', 'Camtel', 'Nexttel'], (v) => _operatorName = v),
-            _drop('Technologie', _technology, ['Non renseigné', '2G', '3G', '4G', '5G'], (v) => _technology = v),
+            _drop(
+                'Opérateur',
+                _operatorName,
+                ['Non renseigné', 'MTN', 'Orange', 'Camtel', 'Nexttel'],
+                (v) => _operatorName = v),
+            _drop(
+                'Technologie',
+                _technology,
+                ['Non renseigné', '2G', '3G', '4G', '5G'],
+                (v) => _technology = v),
             TextField(
               controller: _signalController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-              decoration: const InputDecoration(labelText: 'Intensité signal optionnelle (dBm, ex: -85)'),
+              keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true, signed: true),
+              decoration: const InputDecoration(
+                  labelText: 'Intensité signal optionnelle (dBm, ex: -85)'),
             ),
             TextField(
               controller: _qualityController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-              decoration: const InputDecoration(labelText: 'Qualité signal optionnelle (dB/RSRQ)'),
+              keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true, signed: true),
+              decoration: const InputDecoration(
+                  labelText: 'Qualité signal optionnelle (dB/RSRQ)'),
             ),
           ],
           if (_category == 'Infrastructure') ...[
-            _drop('Type', _infrastructureType, ['Pont', 'Péage', 'Station-service', 'Travaux', 'Autre'], (v) => _infrastructureType = v),
-            TextField(controller: _name, decoration: const InputDecoration(labelText: 'Nom')),
+            _drop(
+                'Type',
+                _infrastructureType,
+                ['Pont', 'Péage', 'Station-service', 'Travaux', 'Autre'],
+                (v) => _infrastructureType = v),
+            TextField(
+                controller: _name,
+                decoration: const InputDecoration(labelText: 'Nom')),
           ],
           TextField(
             controller: _description,
@@ -130,11 +156,13 @@ class _FieldObservationScreenState extends State<FieldObservationScreen> {
         ],
       );
 
-  Widget _drop(String l, String v, List<String> a, ValueChanged<String> f) => DropdownButtonFormField<String>(
+  Widget _drop(String l, String v, List<String> a, ValueChanged<String> f) =>
+      DropdownButtonFormField<String>(
         // ignore: deprecated_member_use
         value: v,
         decoration: InputDecoration(labelText: l),
-        items: a.map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(),
+        items:
+            a.map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(),
         onChanged: (x) {
           if (x != null) setState(() => f(x));
         },

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/app_data.dart';
 import '../services/database_service.dart';
@@ -43,7 +43,8 @@ class _NetworkScreenState extends State<NetworkScreen> {
       final result = await _live.measure();
       final position = await _location.getCurrentPosition();
       if (position == null) {
-        throw StateError('Position GPS indisponible : la mesure ne sera pas enregistrée sans géolocalisation.');
+        throw StateError(
+            'Position GPS indisponible : la mesure ne sera pas enregistrée sans géolocalisation.');
       }
       await _db.insertNetworkMeasurement(
         NetworkMeasurement(
@@ -74,7 +75,8 @@ class _NetworkScreenState extends State<NetworkScreen> {
     setState(() => _monitoring = true);
     await _measure();
     _monitorTimer?.cancel();
-    _monitorTimer = Timer.periodic(const Duration(seconds: 30), (_) => _measure());
+    _monitorTimer =
+        Timer.periodic(const Duration(seconds: 30), (_) => _measure());
   }
 
   @override
@@ -85,6 +87,12 @@ class _NetworkScreenState extends State<NetworkScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Calcul des statistiques par opérateur
+    final operatorStats = <String, List<NetworkMeasurement>>{};
+    for (final item in _items) {
+      operatorStats.putIfAbsent(item.operator, () => []).add(item);
+    }
+
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -97,12 +105,12 @@ class _NetworkScreenState extends State<NetworkScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Qualité réseau téléphonique',
+                    'Qualité réseau téléphonique & Historique radio',
                     style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Mesure réelle du téléphone : opérateur, technologie, intensité radio et latence Internet. Les résultats sont horodatés.',
+                    'Mesure réelle du téléphone : opérateur, technologie, intensité radio et latence Internet. Les résultats sont enregistrés dans le cache SQLite local.',
                   ),
                   const SizedBox(height: 10),
                   FilledButton.icon(
@@ -114,12 +122,14 @@ class _NetworkScreenState extends State<NetworkScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.network_check),
-                    label: Text(_measuring ? 'Mesure en cours…' : 'Mesurer maintenant'),
+                    label: Text(
+                        _measuring ? 'Mesure en cours…' : 'Mesurer maintenant'),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: _measuring ? null : _toggleMonitoring,
-                    icon: Icon(_monitoring ? Icons.stop_circle : Icons.directions_car),
+                    icon: Icon(
+                        _monitoring ? Icons.stop_circle : Icons.directions_car),
                     label: Text(
                       _monitoring
                           ? 'Arrêter le suivi réseau (30 s)'
@@ -138,7 +148,8 @@ class _NetworkScreenState extends State<NetworkScreen> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         _error!,
-                        style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error),
                       ),
                     ),
                 ],
@@ -146,6 +157,61 @@ class _NetworkScreenState extends State<NetworkScreen> {
             ),
           ),
           if (_snapshot != null) _liveCard(_snapshot!),
+          // Résumé et tendances par opérateur
+          if (operatorStats.isNotEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Synthèse par opérateur (Cache local)',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    ...operatorStats.entries.map((entry) {
+                      final name = entry.key;
+                      final list = entry.value;
+                      final validSignals = list
+                          .where((m) => m.signalStrength != null)
+                          .map((m) => m.signalStrength!)
+                          .toList();
+                      final avgSignal = validSignals.isNotEmpty
+                          ? validSignals.reduce((a, b) => a + b) /
+                              validSignals.length
+                          : null;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          children: [
+                            Icon(Icons.cell_tower,
+                                size: 18,
+                                color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '$name : ${list.length} mesure(s)',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                            Text(
+                              avgSignal != null
+                                  ? 'Signal moy: ${avgSignal.toStringAsFixed(0)} dBm'
+                                  : 'Signal non mesuré',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
           const Card(
             child: ListTile(
               leading: Icon(Icons.verified_outlined),
@@ -191,9 +257,12 @@ class _NetworkScreenState extends State<NetworkScreen> {
               const SizedBox(height: 8),
               Text('Opérateur : ${x.operatorName}'),
               Text('Technologie : ${x.technology}'),
-              Text('Signal : ${x.signalDbm?.toStringAsFixed(0) ?? "Non mesuré"} dBm — ${x.signalLabel}'),
-              Text('Qualité radio : ${x.qualityDb?.toStringAsFixed(0) ?? "Non mesurée"} dB'),
-              Text('Latence HTTP : ${x.latencyMs == null ? "Non mesurée" : "${x.latencyMs} ms"}'),
+              Text(
+                  'Signal : ${x.signalDbm?.toStringAsFixed(0) ?? "Non mesuré"} dBm — ${x.signalLabel}'),
+              Text(
+                  'Qualité radio : ${x.qualityDb?.toStringAsFixed(0) ?? "Non mesurée"} dB'),
+              Text(
+                  'Latence HTTP : ${x.latencyMs == null ? "Non mesurée" : "${x.latencyMs} ms"}'),
               Text('Mesuré : ${x.timestamp.toLocal()}'),
               const SizedBox(height: 6),
               Text(x.source, style: const TextStyle(fontSize: 11)),

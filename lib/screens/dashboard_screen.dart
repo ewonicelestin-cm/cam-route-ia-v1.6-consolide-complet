@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/app_data.dart';
 import '../services/database_service.dart';
@@ -15,7 +15,11 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _locations = 0, _routes = 0, _roads = 0, _networkCount = 0, _infrastructureCount = 0;
+  int _locations = 0,
+      _routes = 0,
+      _roads = 0,
+      _networkCount = 0,
+      _infrastructureCount = 0;
   Position? _currentPosition;
   LiveNetworkSnapshot? _liveSnapshot;
   List<InfrastructurePoint> _infrastructures = [];
@@ -54,12 +58,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     try {
-      final pos = await LocationService().getCurrentPosition().timeout(const Duration(seconds: 4), onTimeout: () => null);
+      final pos = await LocationService()
+          .getCurrentPosition()
+          .timeout(const Duration(seconds: 4), onTimeout: () => null);
       if (mounted && pos != null) setState(() => _currentPosition = pos);
     } catch (_) {}
 
     try {
-      final netSnap = await LiveNetworkService().measure().timeout(const Duration(seconds: 4));
+      final netSnap = await LiveNetworkService()
+          .measure()
+          .timeout(const Duration(seconds: 4));
       if (mounted) setState(() => _liveSnapshot = netSnap);
     } catch (_) {}
   }
@@ -67,7 +75,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final timeFormatted = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+    final timeFormatted =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
     final dateFormatted = '${now.day}/${now.month}/${now.year}';
     final timezone = now.timeZoneName;
 
@@ -90,26 +99,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const Expanded(
                         child: Text(
                           'CAM-ROUTE IA V1.6',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ),
                       Chip(
-                        label: Text(timezone, style: const TextStyle(fontSize: 11)),
+                        label: Text(timezone,
+                            style: const TextStyle(fontSize: 11)),
                         backgroundColor: Colors.blue.withValues(alpha: 0.1),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  const Text('Cartographie intelligente, routage et analyse terrain en temps réel.'),
+                  const Text(
+                      'Cartographie intelligente, routage et analyse terrain en temps réel.'),
                   const Divider(height: 20),
                   Row(
                     children: [
-                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                      const Icon(Icons.access_time,
+                          size: 16, color: Colors.grey),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           'Heure locale : $dateFormatted à $timeFormatted ($timezone)',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -118,7 +132,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.my_location, size: 16, color: Colors.grey),
+                      const Icon(Icons.my_location,
+                          size: 16, color: Colors.grey),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -146,36 +161,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.signal_cellular_alt, color: Colors.indigo),
+                        const Icon(Icons.signal_cellular_alt,
+                            color: Colors.indigo),
                         const SizedBox(width: 8),
-                        const Text('Qualité Réseau en Direct', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        const Text('Qualité Réseau en Direct',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
                         const Spacer(),
                         if (_loading)
-                          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2))
                         else
                           const Icon(Icons.chevron_right, color: Colors.grey),
                       ],
                     ),
                     const SizedBox(height: 8),
                     if (_liveSnapshot == null)
-                      const Text('Appuyez pour lancer une mesure radio ou vérifier le signal.')
+                      const Text(
+                          'Appuyez pour lancer une mesure radio ou vérifier le signal.')
                     else ...[
                       Row(
                         children: [
-                          const Text('Opérateur : ', style: TextStyle(fontWeight: FontWeight.w600)),
+                          const Text('Opérateur : ',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
                           Text(_liveSnapshot!.operatorName),
                           const Spacer(),
                           Chip(
-                            label: Text(_liveSnapshot!.technology, style: const TextStyle(fontSize: 11, color: Colors.white)),
+                            label: Text(_liveSnapshot!.technology,
+                                style: const TextStyle(
+                                    fontSize: 11, color: Colors.white)),
                             backgroundColor: Colors.indigo,
                             visualDensity: VisualDensity.compact,
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text('Signal : ${_liveSnapshot!.signalDbm?.toStringAsFixed(0) ?? "Non mesuré"} dBm — ${_liveSnapshot!.signalLabel}'),
+                      Text(
+                          'Signal : ${_liveSnapshot!.signalDbm?.toStringAsFixed(0) ?? "Non mesuré"} dBm — ${_liveSnapshot!.signalLabel}'),
                       if (_liveSnapshot!.latencyMs != null)
-                        Text('Latence Internet (HTTP) : ${_liveSnapshot!.latencyMs} ms'),
+                        Text(
+                            'Latence Internet (HTTP) : ${_liveSnapshot!.latencyMs} ms'),
                     ],
                   ],
                 ),
@@ -188,14 +215,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Expanded(
                 child: InkWell(
                   onTap: () => widget.onNavigate(2),
-                  child: DashboardCard(title: 'Positions', value: '$_locations', icon: Icons.gps_fixed),
+                  child: DashboardCard(
+                      title: 'Positions',
+                      value: '$_locations',
+                      icon: Icons.gps_fixed),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: InkWell(
                   onTap: () => widget.onNavigate(6),
-                  child: DashboardCard(title: 'Itinéraires', value: '$_routes', icon: Icons.route),
+                  child: DashboardCard(
+                      title: 'Itinéraires',
+                      value: '$_routes',
+                      icon: Icons.route),
                 ),
               ),
             ],
@@ -205,34 +238,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Expanded(
                 child: InkWell(
                   onTap: () => widget.onNavigate(5),
-                  child: DashboardCard(title: 'Routes', value: '$_roads', icon: Icons.construction),
+                  child: DashboardCard(
+                      title: 'Routes',
+                      value: '$_roads',
+                      icon: Icons.construction),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: InkWell(
                   onTap: () => widget.onNavigate(4),
-                  child: DashboardCard(title: 'Réseau', value: '$_networkCount', icon: Icons.network_cell),
+                  child: DashboardCard(
+                      title: 'Réseau',
+                      value: '$_networkCount',
+                      icon: Icons.network_cell),
                 ),
               ),
             ],
           ),
           InkWell(
             onTap: () => widget.onNavigate(7),
-            child: DashboardCard(title: 'Infrastructures & Sites utiles', value: '$_infrastructureCount', icon: Icons.location_city),
+            child: DashboardCard(
+                title: 'Infrastructures & Sites utiles',
+                value: '$_infrastructureCount',
+                icon: Icons.location_city),
           ),
           const SizedBox(height: 8),
           if (_infrastructures.isNotEmpty) ...[
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              child: Text('Infrastructures & Sites utiles enregistrés à proximité', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text(
+                  'Infrastructures & Sites utiles enregistrés à proximité',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
             ..._infrastructures.take(3).map(
                   (infra) => Card(
                     child: ListTile(
-                      leading: const Icon(Icons.place, color: Colors.deepPurple),
+                      leading:
+                          const Icon(Icons.place, color: Colors.deepPurple),
                       title: Text(infra.name.isEmpty ? infra.type : infra.name),
-                      subtitle: Text('${infra.type} • ${infra.latitude.toStringAsFixed(4)}, ${infra.longitude.toStringAsFixed(4)}'),
+                      subtitle: Text(
+                          '${infra.type} • ${infra.latitude.toStringAsFixed(4)}, ${infra.longitude.toStringAsFixed(4)}'),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => widget.onNavigate(1),
                     ),

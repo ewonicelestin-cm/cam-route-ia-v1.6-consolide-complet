@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/app_data.dart';
@@ -121,7 +121,8 @@ class _MapScreenState extends State<MapScreen> {
       loading = false;
     });
     if (result.isEstimated) {
-      _message('Trajet calculé en estimation hors ligne : le tracé est géométrique et non routier réel.');
+      _message(
+          'Trajet calculé en estimation hors ligne : le tracé est géométrique et non routier réel.');
     }
     _fitRoute(result.points);
   }
@@ -181,7 +182,8 @@ class _MapScreenState extends State<MapScreen> {
   String _zoneLabel(CorridorZoneReport zone) {
     final flags = <String>[];
     if (zone.intelligence.seismicEvents.isNotEmpty) {
-      flags.add('${zone.intelligence.seismicEvents.length} événement(s) sismique(s)');
+      flags.add(
+          '${zone.intelligence.seismicEvents.length} événement(s) sismique(s)');
     }
     if (zone.badRoadCount > 0) {
       flags.add('${zone.badRoadCount} route(s) en mauvais état');
@@ -201,7 +203,9 @@ class _MapScreenState extends State<MapScreen> {
         markers.add(_marker(
           LatLng(item.latitude, item.longitude),
           Icons.warning_amber,
-          item.condition.toLowerCase() == 'mauvais' ? Colors.red : Colors.orange,
+          item.condition.toLowerCase() == 'mauvais'
+              ? Colors.red
+              : Colors.orange,
           'Route ${item.condition}',
         ));
       }
@@ -237,7 +241,8 @@ class _MapScreenState extends State<MapScreen> {
       }
     }
     if (current != null) {
-      markers.add(_marker(current!, Icons.my_location, Colors.blue, 'Position GPS'));
+      markers.add(
+          _marker(current!, Icons.my_location, Colors.blue, 'Position GPS'));
     }
     if (destination != null) {
       final place = GlobalPlaceCatalog.selected.value;
@@ -308,7 +313,8 @@ class _MapScreenState extends State<MapScreen> {
                   FilterChip(
                     label: const Text('Infrastructure'),
                     selected: showInfrastructure,
-                    onSelected: (value) => setState(() => showInfrastructure = value),
+                    onSelected: (value) =>
+                        setState(() => showInfrastructure = value),
                   ),
                   FilterChip(
                     label: const Text('Corridor'),
@@ -382,7 +388,11 @@ class _MapScreenState extends State<MapScreen> {
                         FilledButton.icon(
                           onPressed: loading ? null : _calculateRoute,
                           icon: loading
-                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2))
                               : const Icon(Icons.route),
                           label: const Text("Calculer l'itinéraire"),
                         ),
@@ -391,15 +401,23 @@ class _MapScreenState extends State<MapScreen> {
                           OutlinedButton.icon(
                             onPressed: analyzing ? null : _analyzeCorridor,
                             icon: analyzing
-                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
                                 : const Icon(Icons.analytics),
                             label: const Text('Analyser les données'),
                           ),
                           const SizedBox(height: 6),
                           FilledButton.icon(
-                            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RouteCorridorScreen(route: route!))),
+                            onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        RouteCorridorScreen(route: route!))),
                             icon: const Icon(Icons.auto_awesome),
-                            label: const Text("Ouvrir l'itinéraire intelligent"),
+                            label:
+                                const Text("Ouvrir l'itinéraire intelligent"),
                           ),
                         ],
                         Align(
@@ -425,7 +443,9 @@ class _MapScreenState extends State<MapScreen> {
                             ? 'Source : ${route!.source} • Itinéraire estimé hors ligne'
                             : 'Source : ${route!.source}',
                         style: TextStyle(
-                          color: route!.isEstimated ? Colors.orange[700] : Colors.green[700],
+                          color: route!.isEstimated
+                              ? Colors.orange[700]
+                              : Colors.green[700],
                           fontSize: 12,
                         ),
                       ),

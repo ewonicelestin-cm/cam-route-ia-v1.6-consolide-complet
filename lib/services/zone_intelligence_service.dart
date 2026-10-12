@@ -12,7 +12,8 @@ class ZoneIntelligenceService {
   final http.Client _client;
   final DateTime Function() _now;
 
-  Future<ZoneAnalysis> analyze({required LatLng point, double seismicRadiusKm = 300}) async {
+  Future<ZoneAnalysis> analyze(
+      {required LatLng point, double seismicRadiusKm = 300}) async {
     final now = _now();
     final results = await Future.wait([
       _seismic(point, seismicRadiusKm).catchError((_) => <SeismicEvent>[]),
@@ -24,10 +25,16 @@ class ZoneIntelligenceService {
     final region = results[2] as Map<String, String>;
 
     final warnings = <String>[];
-    if (seismic.isNotEmpty) warnings.add('${seismic.length} événement(s) sismique(s) récent(s) trouvé(s) dans un rayon de ${seismicRadiusKm.round()} km.');
-    if (weather != null && weather.precipitation >= 10) warnings.add('Précipitations importantes prévues/observées selon la donnée météo disponible.');
-    if (weather != null && weather.windSpeed >= 50) warnings.add('Vent élevé selon la donnée météo disponible.');
-    warnings.add('Les événements sismiques et la météo sont des données externes : ils ne constituent pas une prédiction de danger.');
+    if (seismic.isNotEmpty)
+      warnings.add(
+          '${seismic.length} événement(s) sismique(s) récent(s) trouvé(s) dans un rayon de ${seismicRadiusKm.round()} km.');
+    if (weather != null && weather.precipitation >= 10)
+      warnings.add(
+          'Précipitations importantes prévues/observées selon la donnée météo disponible.');
+    if (weather != null && weather.windSpeed >= 50)
+      warnings.add('Vent élevé selon la donnée météo disponible.');
+    warnings.add(
+        'Les événements sismiques et la météo sont des données externes : ils ne constituent pas une prédiction de danger.');
 
     return ZoneAnalysis(
       country: region['country'] ?? 'Inconnu',
@@ -38,28 +45,38 @@ class ZoneIntelligenceService {
       observedNetworkPoints: 0,
       observedRoadPoints: 0,
       observedInfrastructurePoints: 0,
-      networkSourceStatus: 'Préparation ITU DCM : couverture 2G/3G/4G, cellules, QoS et mesures terrain à corréler.',
+      networkSourceStatus:
+          'Préparation ITU DCM : couverture 2G/3G/4G, cellules, QoS et mesures terrain à corréler.',
       informationScore: _informationScore(seismic, weather),
       warnings: warnings,
       generatedAt: now,
     );
   }
 
-  int _informationScore(List<SeismicEvent> s, WeatherSnapshot? w) => (30 + (w != null ? 35 : 0) + (s.isNotEmpty ? 35 : 10)).clamp(0,100);
+  int _informationScore(List<SeismicEvent> s, WeatherSnapshot? w) =>
+      (30 + (w != null ? 35 : 0) + (s.isNotEmpty ? 35 : 10)).clamp(0, 100);
 
   Future<List<SeismicEvent>> _seismic(LatLng p, double radius) async {
-    final uri = Uri.https('earthquake.usgs.gov','/fdsnws/event/1/query',{
-      'format':'geojson','latitude':'${p.latitude}','longitude':'${p.longitude}','maxradiuskm':'$radius','orderby':'time','limit':'50','starttime':_now().subtract(const Duration(days:30)).toUtc().toIso8601String(),
+    final uri = Uri.https('earthquake.usgs.gov', '/fdsnws/event/1/query', {
+      'format': 'geojson',
+      'latitude': '${p.latitude}',
+      'longitude': '${p.longitude}',
+      'maxradiuskm': '$radius',
+      'orderby': 'time',
+      'limit': '50',
+      'starttime':
+          _now().subtract(const Duration(days: 30)).toUtc().toIso8601String(),
     });
-    final r = await _client.get(uri).timeout(const Duration(seconds:12));
+    final r = await _client.get(uri).timeout(const Duration(seconds: 12));
     if (r.statusCode != 200) return [];
     final json = jsonDecode(r.body);
-    if (json is! Map<String,dynamic>) return [];
+    if (json is! Map<String, dynamic>) return [];
     final features = (json['features'] as List?) ?? const <dynamic>[];
     return features.whereType<Map>().map((f) {
-      final m = f.cast<String,dynamic>();
-      final prop = ((m['properties'] as Map?) ?? const {}).cast<String,dynamic>();
-      final geo = ((m['geometry'] as Map?) ?? const {}).cast<String,dynamic>();
+      final m = f.cast<String, dynamic>();
+      final prop =
+          ((m['properties'] as Map?) ?? const {}).cast<String, dynamic>();
+      final geo = ((m['geometry'] as Map?) ?? const {}).cast<String, dynamic>();
       final c = (geo['coordinates'] as List?) ?? const [0.0, 0.0, 0.0];
       final latitude = _numFromList(c, 1) ?? 0.0;
       final longitude = _numFromList(c, 0) ?? 0.0;
@@ -80,13 +97,22 @@ class ZoneIntelligenceService {
   }
 
   Future<WeatherSnapshot?> _weather(LatLng p) async {
-    final uri = Uri.https('api.open-meteo.com','/v1/forecast',{'latitude':'${p.latitude}','longitude':'${p.longitude}','current':'temperature_2m,precipitation,wind_speed_10m,weather_code','hourly':'precipitation,temperature_2m,weather_code','forecast_days':'2','timezone':'auto'});
-    final r = await _client.get(uri).timeout(const Duration(seconds:12));
+    final uri = Uri.https('api.open-meteo.com', '/v1/forecast', {
+      'latitude': '${p.latitude}',
+      'longitude': '${p.longitude}',
+      'current': 'temperature_2m,precipitation,wind_speed_10m,weather_code',
+      'hourly': 'precipitation,temperature_2m,weather_code',
+      'forecast_days': '2',
+      'timezone': 'auto'
+    });
+    final r = await _client.get(uri).timeout(const Duration(seconds: 12));
     if (r.statusCode != 200) return null;
     final root = jsonDecode(r.body);
-    if (root is! Map<String,dynamic>) return null;
-    final current = (root['current'] as Map?)?.cast<String,dynamic>() ?? const <String,dynamic>{};
-    final hourly = (root['hourly'] as Map?)?.cast<String,dynamic>() ?? const <String,dynamic>{};
+    if (root is! Map<String, dynamic>) return null;
+    final current = (root['current'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
+    final hourly = (root['hourly'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
     if (current.isEmpty && hourly.isEmpty) return null;
 
     final times = (hourly['time'] as List?) ?? const <dynamic>[];
@@ -94,14 +120,27 @@ class ZoneIntelligenceService {
     final currentTime = _parseTime(current['time']);
     var startIndex = 0;
     if (currentTime != null && times.isNotEmpty) {
-      final parsedTimes = times.map((value) => _parseTime(value)).whereType<DateTime>().toList();
+      final parsedTimes = times
+          .map((value) => _parseTime(value))
+          .whereType<DateTime>()
+          .toList();
       for (var i = 0; i < parsedTimes.length; i++) {
         final t = parsedTimes[i];
-        if (!t.isBefore(currentTime)) { startIndex = i; break; }
+        if (!t.isBefore(currentTime)) {
+          startIndex = i;
+          break;
+        }
       }
     }
-    final next6 = rains.skip(startIndex).take(6).whereType<num>().map((value) => value.toDouble()).toList();
-    final next6h = next6.isEmpty ? null : next6.fold<double>(0, (total, value) => total + value);
+    final next6 = rains
+        .skip(startIndex)
+        .take(6)
+        .whereType<num>()
+        .map((value) => value.toDouble())
+        .toList();
+    final next6h = next6.isEmpty
+        ? null
+        : next6.fold<double>(0, (total, value) => total + value);
 
     return WeatherSnapshot(
       temperature: _doubleValue(current['temperature_2m']) ?? 0.0,
@@ -114,18 +153,23 @@ class ZoneIntelligenceService {
     );
   }
 
-  Future<Map<String,String>> _region(LatLng p) async {
-    final uri = Uri.https('earthquake.usgs.gov','/ws/geoserve/regions.json',{'latitude':'${p.latitude}','longitude':'${p.longitude}','type':'admin'});
-    final r = await _client.get(uri).timeout(const Duration(seconds:12));
+  Future<Map<String, String>> _region(LatLng p) async {
+    final uri = Uri.https('earthquake.usgs.gov', '/ws/geoserve/regions.json', {
+      'latitude': '${p.latitude}',
+      'longitude': '${p.longitude}',
+      'type': 'admin'
+    });
+    final r = await _client.get(uri).timeout(const Duration(seconds: 12));
     if (r.statusCode != 200) return {};
     final data = jsonDecode(r.body);
-    if (data is! Map<String,dynamic>) return {};
-    final admin = (data['admin'] as Map?)?.cast<String,dynamic>();
+    if (data is! Map<String, dynamic>) return {};
+    final admin = (data['admin'] as Map?)?.cast<String, dynamic>();
     final features = (admin?['features'] as List?) ?? const <dynamic>[];
     if (features.isEmpty) return {};
     final first = features.first;
     if (first is! Map) return {};
-    final props = (first['properties'] as Map?)?.cast<String,dynamic>() ?? const <String,dynamic>{};
+    final props = (first['properties'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
     return {
       'country': '${props['country'] ?? ''}',
       'iso': '${props['iso'] ?? ''}',

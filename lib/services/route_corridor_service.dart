@@ -6,7 +6,8 @@ import 'database_service.dart';
 import 'zone_intelligence_service.dart';
 
 class RouteCorridorService {
-  RouteCorridorService({DatabaseService? database, ZoneIntelligenceService? intelligence})
+  RouteCorridorService(
+      {DatabaseService? database, ZoneIntelligenceService? intelligence})
       : _database = database ?? DatabaseService(),
         _intelligence = intelligence ?? ZoneIntelligenceService();
 
@@ -19,7 +20,8 @@ class RouteCorridorService {
 
   Future<RouteCorridorReport> analyze(RouteResult route) async {
     if (route.points.length < 2) {
-      throw StateError('L’itinéraire ne contient pas assez de points pour analyser un corridor.');
+      throw StateError(
+          'L’itinéraire ne contient pas assez de points pour analyser un corridor.');
     }
     final roads = await _database.getRoadObservations();
     final networks = await _database.getNetworkMeasurements();
@@ -38,9 +40,15 @@ class RouteCorridorService {
         distanceFromStartKm: sample.distanceKm,
         point: sample.point,
         intelligence: analysis,
-        networkMeasurements: networks.where((m) => _within(m.latitude, m.longitude, sample.point)).toList(),
-        roadObservations: roads.where((m) => _within(m.latitude, m.longitude, sample.point)).toList(),
-        infrastructures: infrastructures.where((m) => _within(m.latitude, m.longitude, sample.point)).toList(),
+        networkMeasurements: networks
+            .where((m) => _within(m.latitude, m.longitude, sample.point))
+            .toList(),
+        roadObservations: roads
+            .where((m) => _within(m.latitude, m.longitude, sample.point))
+            .toList(),
+        infrastructures: infrastructures
+            .where((m) => _within(m.latitude, m.longitude, sample.point))
+            .toList(),
       ));
     }
 
@@ -52,7 +60,8 @@ class RouteCorridorService {
       'Les observations de routes et d’infrastructures proviennent de la base locale et peuvent être anciennes.',
     ];
     if (route.isEstimated) {
-      limitations.add('Le tracé a été estimé hors ligne. Il sert de support local et ne remplace pas un itinéraire routier réel calculé par OSRM ou une carte dédiée.');
+      limitations.add(
+          'Le tracé a été estimé hors ligne. Il sert de support local et ne remplace pas un itinéraire routier réel calculé par OSRM ou une carte dédiée.');
     }
 
     return RouteCorridorReport(
@@ -89,10 +98,13 @@ class RouteCorridorService {
       final target = totalMeters * sampleIndex / (count - 1);
       var traversed = 0.0;
       var selected = points.last;
-      for (var segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+      for (var segmentIndex = 0;
+          segmentIndex < segments.length;
+          segmentIndex++) {
         final segmentLength = segments[segmentIndex];
         if (traversed + segmentLength >= target) {
-          final fraction = segmentLength == 0 ? 0.0 : (target - traversed) / segmentLength;
+          final fraction =
+              segmentLength == 0 ? 0.0 : (target - traversed) / segmentLength;
           final a = points[segmentIndex];
           final b = points[segmentIndex + 1];
           selected = LatLng(
@@ -103,7 +115,8 @@ class RouteCorridorService {
         }
         traversed += segmentLength;
       }
-      if (result.isEmpty || _distance.as(LengthUnit.Meter, result.last.point, selected) > 100) {
+      if (result.isEmpty ||
+          _distance.as(LengthUnit.Meter, result.last.point, selected) > 100) {
         result.add(_RouteSample(selected, target / 1000));
       }
     }
