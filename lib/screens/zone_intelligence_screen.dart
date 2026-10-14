@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import '../models/global_place.dart';
+import '../models/route_result.dart';
+import '../services/global_place_catalog.dart';
 import '../services/route_correlation_service.dart';
+import '../services/routing_service.dart';
 
 class ZoneIntelligenceScreen extends StatefulWidget {
   const ZoneIntelligenceScreen({super.key});
@@ -10,52 +14,108 @@ class ZoneIntelligenceScreen extends StatefulWidget {
 }
 
 class _ZoneIntelligenceScreenState extends State<ZoneIntelligenceScreen> {
-  final startLat = TextEditingController(text: '3.8480');
-  final startLon = TextEditingController(text: '11.5021');
-  final endLat = TextEditingController(text: '4.0511');
-  final endLon = TextEditingController(text: '9.7679');
+  final startController = TextEditingController(text: 'Yaoundé, Cameroun');
+  final endController = TextEditingController(text: 'Douala, Cameroun');
+
+  LatLng _startPoint = const LatLng(3.8480, 11.5021);
+  LatLng _endPoint = const LatLng(4.0511, 9.7679);
+
   final service = RouteCorrelationService();
+  final routingService = RoutingService();
+
   RouteCorrelationResult? result;
+  List<SmartRouteOption> routeOptions = [];
+  int selectedOptionIndex = 0;
+
   bool loading = false;
+  bool searchingStart = false;
+  bool searchingEnd = false;
   String? error;
 
-  double? _number(TextEditingController c) =>
-      double.tryParse(c.text.trim().replaceAll(',', '.'));
+  List<GlobalPlace> startSuggestions = [];
+  List<GlobalPlace> endSuggestions = [];
 
-  Future<void> analyzeRoute() async {
-    final a = _number(startLat),
-        b = _number(startLon),
-        c = _number(endLat),
-        d = _number(endLon);
-    if (a == null ||
-        b == null ||
-        c == null ||
-        d == null ||
-        a < -90 ||
-        a > 90 ||
-        c < -90 ||
-        c > 90 ||
-        b < -180 ||
-        b > 180 ||
-        d < -180 ||
-        d > 180) {
-      setState(() => error =
-          'Coordonnées invalides. Latitude : -90 à 90 ; longitude : -180 à 180.');
+  Future<void> _searchStart(String query) async {
+    if (query.trim().length < 2) {
+      setState(() => startSuggestions = []);
       return;
     }
+    setState(() => searchingStart = true);
+    final local = GlobalPlaceCatalog.filter(query: query);
+    final remote = await GlobalPlaceCatalog.searchNominatim(query);
+    if (mounted) {
+      setState(() {
+        startSuggestions = [...local, ...remote].take(6).toList();
+        searchingStart = false;
+      });
+    }
+  }
+
+  Future<void> _searchEnd(String query) async {
+    if (query.trim().length < 2) {
+      setState(() => endSuggestions = []);
+      return;
+    }
+    setState(() => searchingEnd = true);
+    final local = GlobalPlaceCatalog.filter(query: query);
+    final remote = await GlobalPlaceCatalog.searchNominatim(query);
+    if (mounted) {
+      setState(() {
+        endSuggestions = [...local, ...remote].take(6).toList();
+        searchingEnd = false;
+      });
+    }
+  }
+
+  void _swapLocations() {
+    setState(() {
+      final tmpText = startController.text;
+      startController.text = endController.text;
+      endController.text = tmpText;
+
+      final tmpPoint = _startPoint;
+      _startPoint = _endPoint;
+      _endPoint = tmpPoint;
+
+      startSuggestions = [];
+      endSuggestions = [];
+      result = null;
+      routeOptions = [];
+    });
+  }
+
+  Future<void> analyzeRoute() async {
     setState(() {
       loading = true;
       error = null;
       result = null;
+      routeOptions = [];
+      startSuggestions = [];
+      endSuggestions = [];
     });
+
     try {
+      final options = await routingService.calculateSmartRouteOptions(
+        start: _startPoint,
+        destination: _endPoint,
+      );
+
       final report = await service.analyzeRoute(
-          start: LatLng(a, b), destination: LatLng(c, d));
-      if (mounted) setState(() => result = report);
+        start: _startPoint,
+        destination: _endPoint,
+      );
+
+      if (mounted) {
+        setState(() {
+          routeOptions = options;
+          result = report;
+        });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() => error =
-            'Analyse impossible : $e\nVérifie la connexion Internet et les coordonnées.');
+            'Calcul ou analyse impossible : $e\nVérifiez la connexion Internet et les noms de lieux.');
+      }
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -63,10 +123,8 @@ class _ZoneIntelligenceScreenState extends State<ZoneIntelligenceScreen> {
 
   @override
   void dispose() {
-    startLat.dispose();
-    startLon.dispose();
-    endLat.dispose();
-    endLon.dispose();
+    startController.dispose();
+    endController.dispose();
     super.dispose();
   }
 
@@ -80,29 +138,104 @@ class _ZoneIntelligenceScreenState extends State<ZoneIntelligenceScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Corrélation sur un itinéraire complet',
+                  const Text('Navigation & Calcul d\'Itinéraires',
                       style:
-                          TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
                   const Text(
-                      'L\'application calcule la route routière puis analyse jusqu\'à six zones réparties entre le départ et l\'arrivée. Les données météo et sismiques sont demandées pour chaque zone.'),
+                      'Saisissez les noms des lieux de départ et d’arrivée pour calculer les itinéraires OSRM et analyser le corridor géospatial.'),
                   const SizedBox(height: 12),
-                  const Text('Départ',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  Row(children: [
-                    Expanded(child: _field(startLat, 'Latitude')),
-                    const SizedBox(width: 8),
-                    Expanded(child: _field(startLon, 'Longitude'))
-                  ]),
+                  Row(
+                    children: [
+                      const Icon(Icons.trip_origin, color: Colors.green, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: startController,
+                          decoration: InputDecoration(
+                            labelText: 'Lieu de Départ (Nom, Ville, Adresse)',
+                            suffixIcon: searchingStart
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2))
+                                : null,
+                          ),
+                          onChanged: _searchStart,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (startSuggestions.isNotEmpty)
+                    Card(
+                      color: Colors.grey[50],
+                      child: Column(
+                        children: startSuggestions
+                            .map((p) => ListTile(
+                                  dense: true,
+                                  title: Text(p.name),
+                                  subtitle: Text('${p.city}, ${p.country}'),
+                                  onTap: () {
+                                    setState(() {
+                                      startController.text = p.name;
+                                      _startPoint = LatLng(p.latitude, p.longitude);
+                                      startSuggestions = [];
+                                    });
+                                  },
+                                ))
+                            .toList(),
+                      ),
+                    ),
                   const SizedBox(height: 8),
-                  const Text('Destination',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  Row(children: [
-                    Expanded(child: _field(endLat, 'Latitude')),
-                    const SizedBox(width: 8),
-                    Expanded(child: _field(endLon, 'Longitude'))
-                  ]),
-                  const SizedBox(height: 12),
+                  Center(
+                    child: IconButton(
+                      icon: const Icon(Icons.swap_vert, size: 28, color: Colors.blue),
+                      tooltip: 'Inverser le trajet',
+                      onPressed: _swapLocations,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, color: Colors.red, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: endController,
+                          decoration: InputDecoration(
+                            labelText: 'Lieu d\'Arrivée (Nom, Ville, Adresse)',
+                            suffixIcon: searchingEnd
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2))
+                                : null,
+                          ),
+                          onChanged: _searchEnd,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (endSuggestions.isNotEmpty)
+                    Card(
+                      color: Colors.grey[50],
+                      child: Column(
+                        children: endSuggestions
+                            .map((p) => ListTile(
+                                  dense: true,
+                                  title: Text(p.name),
+                                  subtitle: Text('${p.city}, ${p.country}'),
+                                  onTap: () {
+                                    setState(() {
+                                      endController.text = p.name;
+                                      _endPoint = LatLng(p.latitude, p.longitude);
+                                      endSuggestions = [];
+                                    });
+                                  },
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  const SizedBox(height: 14),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
@@ -114,13 +247,10 @@ class _ZoneIntelligenceScreenState extends State<ZoneIntelligenceScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.route),
                       label: Text(loading
-                          ? 'Calcul et corrélation en cours…'
-                          : 'Analyser tout l\'itinéraire'),
+                          ? 'Calcul et analyse en cours…'
+                          : 'Calculer & Comparer l\'itinéraire'),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                      'Exemple prérempli : Yaoundé → Douala. Les coordonnées peuvent être remplacées pour tout autre itinéraire routier pris en charge.'),
                 ],
               ),
             ),
@@ -134,24 +264,64 @@ class _ZoneIntelligenceScreenState extends State<ZoneIntelligenceScreen> {
                         TextStyle(color: Theme.of(context).colorScheme.error)),
               ),
             ),
+          if (routeOptions.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Text('Options d\'Itinéraires Comparées',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            ...routeOptions.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final opt = entry.value;
+              final selected = idx == selectedOptionIndex;
+              return Card(
+                color: selected ? Colors.blue.withOpacity(0.05) : null,
+                shape: selected
+                    ? RoundedRectangleBorder(
+                        side: const BorderSide(color: Colors.blue, width: 2),
+                        borderRadius: BorderRadius.circular(12),
+                      )
+                    : null,
+                child: ListTile(
+                  title: Row(
+                    children: [
+                      Text(opt.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      Chip(
+                        label: Text(opt.badgeText, style: const TextStyle(fontSize: 11)),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text(
+                          'Distance : ${opt.route.distanceKilometers.toStringAsFixed(1)} km • Durée : ${_duration(opt.route.durationSeconds)}'),
+                      Text('Avantage : ${opt.advantage}'),
+                      Text('Limitation : ${opt.limitation}'),
+                      Text('Indice de Praticabilité : ${opt.safetyScore}/100'),
+                    ],
+                  ),
+                  onTap: () => setState(() => selectedOptionIndex = idx),
+                ),
+              );
+            }),
+          ],
           if (result != null) ..._buildReport(result!),
         ],
       );
 
-  Widget _field(TextEditingController controller, String label) => TextField(
-        controller: controller,
-        keyboardType:
-            const TextInputType.numberWithOptions(decimal: true, signed: true),
-        decoration: InputDecoration(labelText: label),
-      );
-
   List<Widget> _buildReport(RouteCorrelationResult r) => [
+        const SizedBox(height: 8),
         Card(
           child: ListTile(
-            leading: const Icon(Icons.route),
+            leading: const Icon(Icons.analytics),
             title: Text('${r.route.distanceKilometers.toStringAsFixed(1)} km'),
             subtitle: Text(
-                'Durée estimée de conduite : ${_duration(r.route.durationSeconds)}\n${r.zones.length} zones analysées • Généré ${r.generatedAt.toLocal()}'),
+                'Durée de conduite estimée : ${_duration(r.route.durationSeconds)}\n'
+                '${r.zones.length} zones d\'échantillonnage analysées • Généré ${r.generatedAt.toLocal()}'),
           ),
         ),
         Card(
@@ -160,15 +330,15 @@ class _ZoneIntelligenceScreenState extends State<ZoneIntelligenceScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Synthèse de l\'itinéraire',
+                const Text('Synthèse du Corridor',
                     style:
                         TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 Text(
-                    'Événements sismiques retournés dans les rayons analysés : ${r.seismicEventCount} (un même événement peut apparaître dans plusieurs zones).'),
+                    'Événements sismiques détectés : ${r.seismicEventCount}'),
                 Text(
-                    'Zones avec météo disponible : ${r.weatherAvailableCount}/${r.zones.length}.'),
+                    'Zones avec prévision météo disponible : ${r.weatherAvailableCount}/${r.zones.length}'),
                 const Text(
-                    'Couverture téléphonique réelle : non déterminée automatiquement dans cette version. Les relevés opérateur/terrain sont nécessaires pour conclure zone par zone.'),
+                    'Note de couverture : Mesures radio cellulaires locales requises pour valider chaque tronçon.'),
               ],
             ),
           ),
@@ -178,7 +348,7 @@ class _ZoneIntelligenceScreenState extends State<ZoneIntelligenceScreen> {
           child: Padding(
             padding: EdgeInsets.all(12),
             child: Text(
-                'Limites importantes : les points échantillonnés ne représentent pas chaque mètre de route. La météo est une photographie des données disponibles au moment de la requête ; les événements sismiques récents ne prédisent pas un futur séisme. Vérifie les alertes officielles et l\'état réel des routes avant le départ.'),
+                'Important : Les données décrivent l’état des sources au moment de la requête. Les prévisions météo et séismes ne garantissent pas l’absence de risques impromptus.'),
           ),
         ),
       ];
@@ -189,7 +359,7 @@ class _ZoneIntelligenceScreenState extends State<ZoneIntelligenceScreen> {
       child: ExpansionTile(
         leading: const Icon(Icons.location_on_outlined),
         title: Text(
-            'Zone ${z.index} • ${z.distanceFromStartKm.toStringAsFixed(1)} km depuis le départ'),
+            'Zone ${z.index} • km ${z.distanceFromStartKm.toStringAsFixed(1)} depuis le départ'),
         subtitle: Text(
             "${a.country}${a.region.isEmpty ? '' : ' • ${a.region}'} • ${a.seismicEvents.length} événement(s) sismique(s)"),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -204,7 +374,7 @@ class _ZoneIntelligenceScreenState extends State<ZoneIntelligenceScreen> {
               : 'Météo (${a.weather!.time.toLocal()}): ${a.weather!.temperature.toStringAsFixed(1)} °C, vent ${a.weather!.windSpeed.toStringAsFixed(1)} km/h, précipitations ${a.weather!.precipitation.toStringAsFixed(1)} mm.'),
           const SizedBox(height: 6),
           Text(
-              'Sismologie : ${a.seismicEvents.isEmpty ? 'aucun événement retourné par la requête dans le rayon et la période demandés' : ''}'),
+              'Sismologie : ${a.seismicEvents.isEmpty ? 'aucun événement retourné par la requête dans la zone' : ''}'),
           ...a.seismicEvents.take(5).map(
                 (e) => ListTile(
                   dense: true,
