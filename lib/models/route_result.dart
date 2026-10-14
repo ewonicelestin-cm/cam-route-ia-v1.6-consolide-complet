@@ -36,3 +36,21 @@ class RouteResult {
             'Le tracé est une approximation géométrique locale sans calcul routier réel.',
       );
 }
+
+class SmartRouteOption {
+  final String title;
+  final String badgeText;
+  final RouteResult route;
+  final String advantage;
+  final String limitation;
+  final int safetyScore;
+
+  const SmartRouteOption({
+    required this.title,
+    required this.badgeText,
+    required this.route,
+    required this.advantage,
+    required this.limitation,
+    required this.safetyScore,
+  });
+}

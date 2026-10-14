@@ -18,11 +18,11 @@ class DatabaseService {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
       return openDatabase(inMemoryDatabasePath,
-          version: 3, onCreate: _create, onUpgrade: _upgrade);
+          version: 4, onCreate: _create, onUpgrade: _upgrade);
     }
     return openDatabase(
       join(await getDatabasesPath(), 'cam_route_ia.db'),
-      version: 3,
+      version: 4,
       onCreate: _create,
       onUpgrade: _upgrade,
     );
@@ -37,11 +37,13 @@ class DatabaseService {
         'CREATE TABLE network_measurements (id INTEGER PRIMARY KEY AUTOINCREMENT,latitude REAL NOT NULL,longitude REAL NOT NULL,operator TEXT,technology TEXT,signal_strength REAL,quality REAL,timestamp TEXT NOT NULL)');
     await _routes(db);
     await _infra(db);
+    await _incidents(db);
   }
 
   Future<void> _upgrade(Database db, int old, int n) async {
     if (old < 2) await _routes(db);
     if (old < 3) await _infra(db);
+    if (old < 4) await _incidents(db);
   }
 
   Future<void> _routes(Database db) async => db.execute(
@@ -49,6 +51,9 @@ class DatabaseService {
 
   Future<void> _infra(Database db) async => db.execute(
       'CREATE TABLE infrastructures (id INTEGER PRIMARY KEY AUTOINCREMENT,latitude REAL NOT NULL,longitude REAL NOT NULL,type TEXT NOT NULL,name TEXT,description TEXT,timestamp TEXT NOT NULL)');
+
+  Future<void> _incidents(Database db) async => db.execute(
+      'CREATE TABLE incidents (id INTEGER PRIMARY KEY AUTOINCREMENT,latitude REAL NOT NULL,longitude REAL NOT NULL,type TEXT NOT NULL,description TEXT,timestamp TEXT NOT NULL)');
 
   Future<int> insertLocation(LocationRecord x) async =>
       (await database).insert('locations', {
@@ -128,6 +133,25 @@ class DatabaseService {
   Future<int> getInfrastructureCount() async =>
       Sqflite.firstIntValue(await (await database)
           .rawQuery('SELECT COUNT(*) FROM infrastructures')) ??
+      0;
+
+  Future<int> insertIncident(CommunityIncident x) async =>
+      (await database).insert('incidents', {
+        'latitude': x.latitude,
+        'longitude': x.longitude,
+        'type': x.type,
+        'description': x.description,
+        'timestamp': x.timestamp.toIso8601String()
+      });
+
+  Future<List<CommunityIncident>> getIncidents() async =>
+      (await (await database).query('incidents', orderBy: 'timestamp DESC'))
+          .map(CommunityIncident.fromMap)
+          .toList();
+
+  Future<int> getIncidentCount() async =>
+      Sqflite.firstIntValue(
+          await (await database).rawQuery('SELECT COUNT(*) FROM incidents')) ??
       0;
 
   Future<int> insertRoute(

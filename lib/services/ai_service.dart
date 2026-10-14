@@ -14,6 +14,24 @@ class AiRoadAnalysis {
   });
 }
 
+class PredictiveAlert {
+  final String title;
+  final String description;
+  final String source;
+  final String uncertainty;
+  final DateTime timestamp;
+  final Duration validityWindow;
+
+  const PredictiveAlert({
+    required this.title,
+    required this.description,
+    required this.source,
+    required this.uncertainty,
+    required this.timestamp,
+    required this.validityWindow,
+  });
+}
+
 class AiService {
   const AiService();
 
@@ -42,11 +60,13 @@ class AiService {
             ? 'Vigilance modérée'
             : 'Vigilance faible';
     final recommendations = <String>[];
-    if (bad > 0)
+    if (bad > 0) {
       recommendations.add(
           'Prioriser la vérification des segments signalés comme mauvais.');
-    if (medium > 0)
+    }
+    if (medium > 0) {
       recommendations.add('Contrôler l’évolution des segments classés moyens.');
+    }
     recommendations
         .add('Confirmer toute décision avec une inspection terrain récente.');
 
@@ -57,6 +77,59 @@ class AiService {
           '$bad observation(s) mauvaise(s), $medium moyenne(s), sur ${roads.length} observation(s).',
       recommendations: recommendations,
     );
+  }
+
+  List<PredictiveAlert> generatePredictiveAlerts({
+    required List<RoadObservation> roads,
+    required List<NetworkMeasurement> networks,
+    required List<CommunityIncident> incidents,
+  }) {
+    final alerts = <PredictiveAlert>[];
+    final now = DateTime.now();
+
+    final severeIncidents = incidents
+        .where((i) =>
+            i.type.contains('Inondation') || i.type.contains('Route coupée'))
+        .toList();
+    if (severeIncidents.isNotEmpty) {
+      alerts.add(PredictiveAlert(
+        title: 'Risque élevé d’impraticabilité routière',
+        description:
+            '${severeIncidents.length} signalement(s) récents d’inondation ou de route coupée. Risque de blocage majeur.',
+        source: 'Signalements communautaires enregistrés',
+        uncertainty: 'Modérée (Basée sur ${severeIncidents.length} observation(s) terrain)',
+        timestamp: now,
+        validityWindow: const Duration(hours: 6),
+      ));
+    }
+
+    final badRoads =
+        roads.where((r) => r.condition.toLowerCase() == 'mauvais').toList();
+    if (badRoads.isNotEmpty) {
+      alerts.add(PredictiveAlert(
+        title: 'Vigilance sur axes dégradés / latérite',
+        description:
+            '${badRoads.length} tronçon(s) en mauvais état répertorié(s). Ralentissement fort recommandé.',
+        source: 'Relevés d’observations routières locales',
+        uncertainty: 'Faible (Confirmé par données terrain)',
+        timestamp: now,
+        validityWindow: const Duration(hours: 24),
+      ));
+    }
+
+    if (alerts.isEmpty) {
+      alerts.add(PredictiveAlert(
+        title: 'Conditions de route nominales',
+        description:
+            'Aucune alerte majeure signalée sur les tronçons renseignés.',
+        source: 'Synthèse des données terrain & réseau',
+        uncertainty: 'Dépendante du nombre de relevés locaux',
+        timestamp: now,
+        validityWindow: const Duration(hours: 12),
+      ));
+    }
+
+    return alerts;
   }
 
   String summarizeNetwork(List<NetworkMeasurement> measurements) {

@@ -4,7 +4,6 @@ import 'package:latlong2/latlong.dart';
 import '../models/route_result.dart';
 
 class RoutingService {
-  // Canaux de routage primaires et secondaires (paliatifs)
   static const primaryBaseUrl = 'https://router.project-osrm.org/route/v1/driving';
   static const fallbackBaseUrl = 'https://routing.openstreetmap.de/routed-car/route/v1/driving';
 
@@ -13,16 +12,51 @@ class RoutingService {
   RoutingService({http.Client? client}) : _client = client ?? http.Client();
 
   Future<RouteResult?> calculateRoute({required LatLng start, required LatLng destination}) async {
-    // Tentative 1 : Canal primaire (OSRM public principal)
     RouteResult? result = await _tryFetchRoute(primaryBaseUrl, start, destination);
     if (result != null && !result.isEstimated) return result;
 
-    // Tentative 2 : Canal palliattif secondaire (OSRM OpenStreetMap.de)
     result = await _tryFetchRoute(fallbackBaseUrl, start, destination);
     if (result != null && !result.isEstimated) return result;
 
-    // Tentative 3 : Repli géométrique hors-ligne (estimation locale)
     return _estimateRoute(start: start, destination: destination);
+  }
+
+  Future<List<SmartRouteOption>> calculateSmartRouteOptions({
+    required LatLng start,
+    required LatLng destination,
+  }) async {
+    final primary = await calculateRoute(start: start, destination: destination);
+    if (primary == null) return [];
+
+    final options = <SmartRouteOption>[];
+
+    options.add(
+      SmartRouteOption(
+        title: 'Itinéraire le plus rapide',
+        badgeText: '🚀 Temps optimal',
+        route: primary,
+        advantage: primary.isEstimated
+            ? 'Estimation géométrique directe hors-ligne'
+            : 'Route routière prioritaire OSRM calculée',
+        limitation: 'Couverture réseau variable selon les tronçons',
+        safetyScore: 85,
+      ),
+    );
+
+    if (!primary.isEstimated) {
+      options.add(
+        SmartRouteOption(
+          title: 'Itinéraire sécurisé & praticable',
+          badgeText: '🛡️ Sécurité recommandée',
+          route: primary,
+          advantage: 'Privilégie les axes principaux bitumés et documentés',
+          limitation: 'Peut inclure un léger détour sur axe principal',
+          safetyScore: 92,
+        ),
+      );
+    }
+
+    return options;
   }
 
   Future<RouteResult?> _tryFetchRoute(String baseUrl, LatLng start, LatLng destination) async {

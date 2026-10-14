@@ -3,6 +3,8 @@
 *.log
 *.pyc
 *.swp
+*.bak
+build_apk_log.txt
 .DS_Store
 .atom/
 .build/

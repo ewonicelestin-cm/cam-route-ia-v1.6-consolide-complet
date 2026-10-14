@@ -109,3 +109,30 @@ class InfrastructurePoint {
           description: m['description'] as String? ?? '',
           timestamp: DateTime.parse(m['timestamp'] as String));
 }
+
+class CommunityIncident {
+  final int? id;
+  final double latitude;
+  final double longitude;
+  final String type;
+  final String description;
+  final DateTime timestamp;
+
+  const CommunityIncident({
+    this.id,
+    required this.latitude,
+    required this.longitude,
+    required this.type,
+    this.description = '',
+    required this.timestamp,
+  });
+
+  factory CommunityIncident.fromMap(Map<String, dynamic> m) => CommunityIncident(
+        id: m['id'] as int?,
+        latitude: (m['latitude'] as num).toDouble(),
+        longitude: (m['longitude'] as num).toDouble(),
+        type: m['type'] as String? ?? 'Signalement',
+        description: m['description'] as String? ?? '',
+        timestamp: DateTime.parse(m['timestamp'] as String),
+      );
+}

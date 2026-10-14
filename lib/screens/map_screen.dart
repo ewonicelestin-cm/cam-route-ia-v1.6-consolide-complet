@@ -33,10 +33,13 @@ class _MapScreenState extends State<MapScreen> {
   List<RoadObservation> roads = [];
   List<NetworkMeasurement> networks = [];
   List<InfrastructurePoint> infrastructures = [];
+  List<CommunityIncident> incidents = [];
   bool showRoads = true;
   bool showNetwork = true;
   bool showInfrastructure = true;
   bool showCorridor = true;
+  bool showHeatmap = true;
+  bool showIncidents = true;
   bool loading = false;
   bool analyzing = false;
 
@@ -71,12 +74,14 @@ class _MapScreenState extends State<MapScreen> {
       db.getRoadObservations(),
       db.getNetworkMeasurements(),
       db.getInfrastructures(),
+      db.getIncidents(),
     ]);
     if (!mounted) return;
     setState(() {
       roads = data[0] as List<RoadObservation>;
       networks = data[1] as List<NetworkMeasurement>;
       infrastructures = data[2] as List<InfrastructurePoint>;
+      incidents = data[3] as List<CommunityIncident>;
     });
   }
 
@@ -157,6 +162,85 @@ class _MapScreenState extends State<MapScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
   }
 
+  void _showReportDialog() {
+    String selectedType = 'Route coupée';
+    final descController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 16,
+          right: 16,
+          top: 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.add_location_alt, color: Colors.red),
+                const SizedBox(width: 8),
+                const Text('Signaler un Incident / Réseau',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: selectedType,
+              decoration: const InputDecoration(labelText: 'Type de signalement'),
+              items: const [
+                'Route coupée / Latérite',
+                'Inondation / Glissement',
+                'Accident / Obstacle',
+                'Contrôle Police / Ralentissement',
+                'Bon réseau mobile ici',
+              ].map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(),
+              onChanged: (v) => selectedType = v!,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: descController,
+              decoration: const InputDecoration(labelText: 'Description complémentaire'),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.send),
+                label: const Text('Envoyer le signalement'),
+                onPressed: () async {
+                  final p = await location.getCurrentPosition();
+                  if (p == null) {
+                    if (mounted) Navigator.pop(context);
+                    _message('GPS indisponible : impossible d’ancrer le signalement.');
+                    return;
+                  }
+                  await db.insertIncident(
+                    CommunityIncident(
+                      latitude: p.latitude,
+                      longitude: p.longitude,
+                      type: selectedType,
+                      description: descController.text.trim(),
+                      timestamp: DateTime.now(),
+                    ),
+                  );
+                  if (mounted) Navigator.pop(context);
+                  _load();
+                  _message('Signalement communautaire enregistré.');
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   Marker _marker(LatLng point, IconData icon, Color color, String label) {
     return Marker(
       point: point,
@@ -167,6 +251,13 @@ class _MapScreenState extends State<MapScreen> {
         child: Icon(icon, color: color, size: 32),
       ),
     );
+  }
+
+  Color _networkSignalColor(double? dbm) {
+    if (dbm == null) return Colors.grey;
+    if (dbm >= -85) return Colors.green;
+    if (dbm >= -105) return Colors.orange;
+    return Colors.red;
   }
 
   Color _zoneColor(CorridorZoneReport zone) {
@@ -212,11 +303,12 @@ class _MapScreenState extends State<MapScreen> {
     }
     if (showNetwork) {
       for (final item in networks) {
+        final color = showHeatmap ? _networkSignalColor(item.signalStrength) : Colors.blue;
         markers.add(_marker(
           LatLng(item.latitude, item.longitude),
           Icons.network_cell,
-          Colors.blue,
-          '${item.operator} ${item.technology}',
+          color,
+          '${item.operator} ${item.technology} (${item.signalStrength?.toStringAsFixed(0) ?? "N/A"} dBm)',
         ));
       }
     }
@@ -227,6 +319,16 @@ class _MapScreenState extends State<MapScreen> {
           Icons.location_city,
           Colors.deepPurple,
           item.name.isEmpty ? item.type : item.name,
+        ));
+      }
+    }
+    if (showIncidents) {
+      for (final item in incidents) {
+        markers.add(_marker(
+          LatLng(item.latitude, item.longitude),
+          Icons.report_problem,
+          Colors.redAccent,
+          '${item.type}\n${item.description}',
         ));
       }
     }
@@ -297,31 +399,42 @@ class _MapScreenState extends State<MapScreen> {
           child: Card(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Wrap(
-                spacing: 4,
-                children: [
-                  FilterChip(
-                    label: const Text('Routes'),
-                    selected: showRoads,
-                    onSelected: (value) => setState(() => showRoads = value),
-                  ),
-                  FilterChip(
-                    label: const Text('Réseau'),
-                    selected: showNetwork,
-                    onSelected: (value) => setState(() => showNetwork = value),
-                  ),
-                  FilterChip(
-                    label: const Text('Infrastructure'),
-                    selected: showInfrastructure,
-                    onSelected: (value) =>
-                        setState(() => showInfrastructure = value),
-                  ),
-                  FilterChip(
-                    label: const Text('Corridor'),
-                    selected: showCorridor,
-                    onSelected: (value) => setState(() => showCorridor = value),
-                  ),
-                ],
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    FilterChip(
+                      label: const Text('Heatmap Réseau'),
+                      selected: showHeatmap,
+                      onSelected: (value) => setState(() => showHeatmap = value),
+                    ),
+                    const SizedBox(width: 4),
+                    FilterChip(
+                      label: const Text('Signalements'),
+                      selected: showIncidents,
+                      onSelected: (value) => setState(() => showIncidents = value),
+                    ),
+                    const SizedBox(width: 4),
+                    FilterChip(
+                      label: const Text('Routes'),
+                      selected: showRoads,
+                      onSelected: (value) => setState(() => showRoads = value),
+                    ),
+                    const SizedBox(width: 4),
+                    FilterChip(
+                      label: const Text('Infrastructure'),
+                      selected: showInfrastructure,
+                      onSelected: (value) =>
+                          setState(() => showInfrastructure = value),
+                    ),
+                    const SizedBox(width: 4),
+                    FilterChip(
+                      label: const Text('Corridor'),
+                      selected: showCorridor,
+                      onSelected: (value) => setState(() => showCorridor = value),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -352,6 +465,14 @@ class _MapScreenState extends State<MapScreen> {
           bottom: corridorReport != null ? 285 : 160,
           child: Column(
             children: [
+              FloatingActionButton.extended(
+                heroTag: 'signaler-map',
+                onPressed: _showReportDialog,
+                icon: const Icon(Icons.add_location_alt),
+                label: const Text('+ Signaler'),
+                backgroundColor: Colors.redAccent,
+              ),
+              const SizedBox(height: 8),
               FloatingActionButton.small(
                 heroTag: 'refresh-map',
                 onPressed: _load,
